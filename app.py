@@ -29,14 +29,26 @@ def users():
         data=data
     )
 
-@app.route('/user')
+@app.route('/user', methods=['POST'])
 def user():
-    name = request.args.get('name')
-    lastname = request.args.get('lastname')
+    data = request.json
+    username = data.get('username')
+    
+    if not username:
+        return 'missing params', 403
+    
+    password = data.get('password')
+    if not password:
+        return ' missing params', 403
+
     user = {
-        'name': name,
-        'lastname': lastname
+        'username': username,
+        'password': password
     }
-    db.users.insert_one(user)
+    """
+    to-do: Validate that there's no user with same username
+    to-do: Do not store plain text password
+    """
+    #db.users.insert_one(user)
 
     return 'Saved!', 201
