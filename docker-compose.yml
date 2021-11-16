@@ -6,10 +6,15 @@ services:
         volumes:
             - ./:/app
         working_dir: /app
-        environment:
-            - FLASK_APP=app.py
-            - FLASK_DEBUG=1
-        command: flask run --host=0.0.0.0
+        #environment:
+            #- FLASK_APP=app.py
+            #- FLASK_DEBUG=1
+        #command: flask run --host=0.0.0.0
+        entrypoint: /bin/ash
+        stdin_open: true
+        tty: true
+#FLASK_APP=app.py FLASK_DEBUG=1 python -m flask run --host=0.0.0.0 --port=8000
+
 
     webserver:
         image: nginx:latest

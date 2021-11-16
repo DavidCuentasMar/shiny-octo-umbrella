@@ -1,6 +1,7 @@
 
   
 from flask import Flask, jsonify, request
+from datetime import datetime
 from pymongo import MongoClient
 app = Flask(__name__)
 
@@ -20,8 +21,9 @@ def users():
     for element in collection:
         item = {
             'id': str(element['_id']),
-            'name': element['name'],
-            'lastname': element['lastname']
+            'username': element['username'],
+            'created_at': element['created_at'],
+            'updated_at': element['updated_at']
         }
         data.append(item)
 
@@ -39,16 +41,27 @@ def user():
     
     password = data.get('password')
     if not password:
-        return ' missing params', 403
+        return 'missing params', 403
 
+    user = db.users.find_one({'username':username})
+    if user:
+        return 'username already exists', 403
+        
+    now = datetime.now()
     user = {
         'username': username,
-        'password': password
+        'password': password,
+        'created_at': now,
+        'updated_at': now
     }
     """
-    to-do: Validate that there's no user with same username
     to-do: Do not store plain text password
     """
-    #db.users.insert_one(user)
+    db.users.insert_one(user)
 
     return 'Saved!', 201
+
+@app.route('/delete-all-users', methods=['POST'])
+def delete_all_users():   
+    db.users.remove()
+    return 'deleted!', 201    
