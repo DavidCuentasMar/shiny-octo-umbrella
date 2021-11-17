@@ -7,13 +7,26 @@ from datetime import datetime
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
+import models
+
+from models.user import User
+
 app = Flask(__name__)
 
-client = MongoClient('mongodb://mongodb:27017/')
-db = client.test_database
+app.config['MONGODB_DB'] = 'test'
+app.config['MONGODB_HOST'] = 'host.docker.internal'
+app.config['MONGODB_PORT'] = 27017
 
 app.config["JWT_SECRET_KEY"] = "shhhh-super-secret"  
 jwt = JWTManager(app)
+
+# Init model
+models.init_app(app)
+
+"""
+to-do: every hour user can trigger one action
+to-do: send email every hour (?
+"""
 
 @app.route('/')
 def hello_world():
@@ -23,10 +36,11 @@ def hello_world():
 @jwt_required()
 def protected():
     current_user_id = get_jwt_identity()
-    user = db.users.find_one({"_id" :ObjectId(current_user_id)})
+    user = User.objects(id=ObjectId(current_user_id)).first()
     if not user:
         return 'invalid token', 403
-    return jsonify({"id": str(user.get('_id')), "username": user.get('username')}), 200    
+    print(user)
+    return jsonify({"id": str(user.id), "username": user.username}), 200    
 
 @app.route('/auth', methods=['POST'])
 def auth():
@@ -40,30 +54,26 @@ def auth():
     if not password:
         return 'missing params', 400
 
-    user = db.users.find_one(
-        {
-            'username':username,
-            'password':password
-        }
-    )
+    user = User.objects(username=username,password=password).first()
     if not user:
         return 'wrong credentials', 403
 
-    access_token = create_access_token(identity=str(user.get('_id')))
-    return jsonify({ "token": access_token, "user_id": str(user.get('_id') )})
+    access_token = create_access_token(identity=str(user.id))
+    return jsonify({ "token": access_token, "user_id": str(user.id)})
 
 @app.route('/users')
 def users():
-    collection = db.users.find()
+
+    collection = User.objects
 
     item = {}
     data = []
     for element in collection:
         item = {
-            'id': str(element['_id']),
-            'username': element['username'],
-            'created_at': element['created_at'],
-            'updated_at': element['updated_at']
+            'id': str(element.id),
+            'username': element.username,
+            'created_at': element.created_at,
+            'updated_at': element.updated_at
         }
         data.append(item)
 
@@ -83,27 +93,28 @@ def user():
     if not password:
         return 'missing params', 400
 
-    user = db.users.find_one({'username':username})
+    user = User.objects(username=username).first()
     if user:
         return 'username already exists', 403
         
-    now = datetime.now()
-    user = {
-        'username': username,
-        'password': password,
-        'created_at': now,
-        'updated_at': now
-    }
+    user = User()
+    setattr(user, 'username', username)
+    setattr(user, 'password', password)
+    setattr(user, 'created_at', datetime.utcnow())
+    setattr(user, 'updated_at', datetime.utcnow())
+
+    try:
+        user.save()
+    except ValidationError as e:
+        return abort(HTTPStatus.BAD_REQUEST, e.to_dict())
 
     """
     to-do: Do not store plain text password
     """
 
-    db.users.insert_one(user)
-
     return 'Saved!', 201
 
 @app.route('/delete-all-users', methods=['POST'])
 def delete_all_users():   
-    db.users.remove()
+    User.objects.delete()
     return 'deleted!', 201    

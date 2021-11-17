@@ -1,3 +1,4 @@
 Flask==1.0.2
 Flask-PyMongo==2.2.0
 flask-jwt-extended
+Flask-Mongoengine==0.9.5

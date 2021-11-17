@@ -14,7 +14,8 @@ services:
         stdin_open: true
         tty: true
 #FLASK_APP=app.py FLASK_DEBUG=1 python -m flask run --host=0.0.0.0 --port=8000
-
+        extra_hosts:
+            - "host.docker.internal:192.168.0.3"
 
     webserver:
         image: nginx:latest
@@ -22,11 +23,17 @@ services:
             - 8000:80
         volumes:
             - ./nginx/conf.d/:/etc/nginx/conf.d/
-
+        extra_hosts:
+            - "host.docker.internal:192.168.0.3"
+                                    
     mongodb:
         image: mongo
+        ports:
+            - 27017:27017
         volumes:
             - mongodata:/data/db
+        extra_hosts:
+            - "host.docker.internal:192.168.0.3"        
 
 volumes:
     mongodata:
